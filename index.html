@@ -5,13 +5,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>Тренажер для гандбольного вратаря</title>
 
-    <!-- --- НОВЫЕ СТРОКИ ДЛЯ ПРЕВРАЩЕНИЯ В ПРИЛОЖЕНИЕ --- -->
+    <!-- PWA (Progressive Web App) Configuration -->
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="Goalkeeper Training">
     <link rel="apple-touch-icon" href="icon-512x512.png">
     <link rel="manifest" href="manifest.json">
-    <!-- --- КОНЕЦ НОВЫХ СТРОК --- -->
 
     <style>
         body, html {
@@ -20,7 +19,7 @@
             background-color: transparent;
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
             overflow: hidden; 
-            position: fixed; /* Предотвращает прокрутку на мобильных */
+            position: fixed;
         }
         #game-container {
             width: 100%; height: 100%; position: relative;
@@ -105,9 +104,351 @@
             <div id="red-circle"></div><div id="white-circle"></div>
         </div>
     </div>
+
     <script>
-        // JavaScript код остается без изменений
-        const gameContainer=document.getElementById("game-container"),startBtn=document.getElementById("start-btn"),stopBtn=document.getElementById("stop-btn"),redCircle=document.getElementById("red-circle"),whiteCircle=document.getElementById("white-circle"),timerDisplay=document.getElementById("timer-display"),roundDisplay=document.getElementById("round-display"),modeButtons=document.querySelectorAll(".mode-btn"),settingsBtn=document.getElementById("settings-btn"),settingsPanel=document.getElementById("settings-panel"),closeSettingsBtn=document.getElementById("close-settings-btn"),mainControls=document.getElementById("main-controls");let SIZE_X,SIZE_Y,CIRCLE_DIAMETER,MAX_X,MAX_Y,MID_X,MID_Y,MAX_PATH_DISTANCE,SPEED;let rectangleSpeedDuration=4e3,crossInterval=3e3,riseInterval=6e3,throwsInterval=3500,workSeconds=120,restSeconds=60,preparationSeconds=5,totalRounds=10;let currentMode="прямоугольник",gameLoopTimeout,timerInterval,preparationInterval,animationTimeouts=[],currentWhitePos=null,currentRound=1,isWorkPhase=!0,secondsLeft=workSeconds;window.addEventListener("resize",stopGame),modeButtons.forEach(e=>{e.addEventListener("click",()=>setMode(e.textContent.toLowerCase(),e))}),startBtn.addEventListener("click",startGame),stopBtn.addEventListener("click",stopGame),settingsBtn.addEventListener("click",openSettings),closeSettingsBtn.addEventListener("click",closeSettings);function createSettingsPanel(){let e=[{id:"work",label:"Раунд",value:workSeconds,min:10,max:300,step:10,unit:"сек"},{id:"rest",label:"Отдых",value:restSeconds,min:10,max:180,step:5,unit:"сек"},{id:"prep",label:"Подготовка",value:preparationSeconds,min:3,max:15,step:1,unit:"сек"},{id:"rounds",label:"Кол-во раундов",value:totalRounds,min:1,max:20,step:1,unit:""},{id:"rect-speed",label:"Прямоуг. (скорость)",value:rectangleSpeedDuration/1e3,min:2,max:8,step:.5,unit:"сек"},{id:"cross-int",label:"Крест (интервал)",value:crossInterval/1e3,min:2,max:8,step:.5,unit:"сек"},{id:"rise-int",label:"Подъем (интервал)",value:riseInterval/1e3,min:3,max:10,step:.5,unit:"сек"},{id:"throws-int",label:"Броски (интервал)",value:throwsInterval/1e3,min:2,max:8,step:.5,unit:"сек"}],t="";e.forEach(e=>{t+=`<div class="settings-row"><label for="${e.id}-slider">${e.label}</label><input type="range" id="${e.id}-slider" min="${e.min}" max="${e.max}" step="${e.step}" value="${e.value}"><span id="${e.id}-value">${e.value} ${e.unit}</span></div>`}),closeSettingsBtn.insertAdjacentHTML("beforebegin",t),e.forEach(e=>{let t=document.getElementById(`${e.id}-slider`),n=document.getElementById(`${e.id}-value`);t.addEventListener("input",()=>{n.textContent=`${t.value} ${e.unit}`})})}createSettingsPanel();function openSettings(){stopGame(),mainControls.classList.add("hidden"),settingsPanel.classList.remove("hidden"),settingsBtn.classList.add("hidden")}function closeSettings(){workSeconds=parseInt(document.getElementById("work-slider").value),restSeconds=parseInt(document.getElementById("rest-slider").value),preparationSeconds=parseInt(document.getElementById("prep-slider").value),totalRounds=parseInt(document.getElementById("rounds-slider").value),rectangleSpeedDuration=1e3*parseFloat(document.getElementById("rect-speed-slider").value),crossInterval=1e3*parseFloat(document.getElementById("cross-int-slider").value),riseInterval=1e3*parseFloat(document.getElementById("rise-int-slider").value),throwsInterval=1e3*parseFloat(document.getElementById("throws-int-slider").value),mainControls.classList.remove("hidden"),settingsPanel.classList.add("hidden"),settingsBtn.classList.remove("hidden"),initializeDisplays()}function setMode(e,t){currentMode!==e&&(currentMode=e,modeButtons.forEach(e=>e.classList.remove("active")),t.classList.add("active"),startBtn.disabled||stopGame())}function startGame(){stopGame(),redCircle.style.display="block",updateDimensions(),redCircle.style.display="none",startBtn.disabled=!0,stopBtn.disabled=!1,startPreparationCountdown()}function stopGame(){clearInterval(preparationInterval),clearTimeout(gameLoopTimeout),animationTimeouts.forEach(clearTimeout),animationTimeouts=[],clearInterval(timerInterval),redCircle.style.display="none",whiteCircle.style.display="none",whiteCircle.style.transition="none",currentWhitePos=null,currentRound=1,isWorkPhase=!0,secondsLeft=workSeconds,initializeDisplays(),startBtn.disabled=!1,stopBtn.disabled=!0,settingsBtn.classList.remove("hidden")}function startPreparationCountdown(){let e=preparationSeconds;timerDisplay.style.color="#337ab7",roundDisplay.textContent=`Раунд ${currentRound} / ${totalRounds}`,timerDisplay.textContent=`Старт через: ${e}`,preparationInterval=setInterval(()=>{e--,timerDisplay.textContent=`Старт через: ${e}`,e<=0&&(clearInterval(preparationInterval),runActiveMode(),startTimer())},1e3)}function runActiveMode(){whiteCircle.style.display="none";switch(currentMode){case"прямоугольник":rectangleStep();break;case"крест":crossStep();break;case"подъем":riseStep();break;case"броски":throwsStep()}}function rectangleStep(){if(!isWorkPhase)return;null===currentWhitePos&&(currentWhitePos=getRandomSpawnPoint(),placeCircle(whiteCircle,currentWhitePos));let e;do{e=getRandomSpawnPoint()}while(e.name===currentWhitePos.name);placeCircle(redCircle,e);let t=animateWhiteCircleAlongPath(currentWhitePos,e);currentWhitePos=e,gameLoopTimeout=setTimeout(()=>{isWorkPhase&&rectangleStep()},t)}function throwsStep(){if(!isWorkPhase)return;placeCircle(redCircle,getRandomSpawnPoint());let e=setTimeout(()=>{redCircle.style.display="none"},1500);animationTimeouts.push(e),gameLoopTimeout=setTimeout(throwsStep,throwsInterval)}function crossStep(){if(!isWorkPhase)return;placeCircle(redCircle,getRandomSpawnPoint());let e=setTimeout(()=>{redCircle.style.display="none"},1500);animationTimeouts.push(e),gameLoopTimeout=setTimeout(crossStep,crossInterval)}function riseStep(){if(!isWorkPhase)return;placeCircle(redCircle,getRandomSpawnPoint());let e=riseInterval-1e3,t=setTimeout(()=>{redCircle.style.display="none"},e>500?e:500);animationTimeouts.push(t),gameLoopTimeout=setTimeout(riseStep,riseInterval)}function startTimer(){secondsLeft=workSeconds,updateTimerDisplay(),timerInterval=setInterval(()=>{secondsLeft--,updateTimerDisplay(),secondsLeft<0&&(isWorkPhase?(isWorkPhase=!1,secondsLeft=restSeconds,redCircle.style.display="none",clearTimeout(gameLoopTimeout),currentRound>=totalRounds&&(stopGame(),roundDisplay.textContent="Тренировка окончена!")):(isWorkPhase=!0,currentRound++,clearInterval(timerInterval),startPreparationCountdown()))},1e3)}function updateDimensions(){SIZE_X=gameContainer.offsetWidth,SIZE_Y=gameContainer.offsetHeight,CIRCLE_DIAMETER=redCircle.offsetWidth,MAX_X=SIZE_X-CIRCLE_DIAMETER,MAX_Y=SIZE_Y-CIRCLE_DIAMETER,MID_X=SIZE_X/2-CIRCLE_DIAMETER/2,MID_Y=SIZE_Y/2-CIRCLE_DIAMETER/2,MAX_PATH_DISTANCE=MAX_X+MAX_Y,SPEED=MAX_PATH_DISTANCE/rectangleSpeedDuration}function getPointsForCurrentMode(){let e=[{name:"topLeft",top:0,left:0,side:3},{name:"topRight",top:0,left:MAX_X,side:0},{name:"bottomRight",top:MAX_Y,left:MAX_X,side:1},{name:"bottomLeft",top:MAX_Y,left:0,side:2},{name:"midTop",top:0,left:MID_X,side:0},{name:"midRight",top:MID_Y,left:MAX_X,side:1},{name:"midBottom",top:MAX_Y,left:MID_X,side:2},{name:"midLeft",top:MID_Y,left:0,side:3}];switch(currentMode){case"крест":return e.filter(e=>["midTop","midBottom","midLeft","midRight"].includes(e.name));case"подъем":return e.filter(e=>["topLeft","midTop","topRight"].includes(e.name));default:return e}}function getRandomSpawnPoint(){let e=getPointsForCurrentMode();return e[Math.floor(Math.random()*e.length)]}function placeCircle(e,t){e.style.transition="none",e.style.top=`${t.top}px`,e.style.left=`${t.left}px`,e.style.display="block"}function animateWhiteCircleAlongPath(e,t){let n=calculateShortestPath(e,t),o=n.distance,i=o/SPEED;if(0===o)return 0;let a=0;for(let l=0;l<n.path.length;l++){let r=n.path[l],s=0===l?e:n.path[l-1],d=Math.abs(s.top-r.top)+Math.abs(s.left-r.left),c=d/o*i,u=setTimeout(((e,t)=>()=>{whiteCircle.style.transition=`top ${t}ms linear, left ${t}ms linear`,whiteCircle.style.top=`${e.top}px`,whiteCircle.style.left=`${e.left}px`})(r,c),a);animationTimeouts.push(u),a+=c}return i}function calculateShortestPath(e,t){if(e.top===t.top&&e.left===t.left)return{path:[],distance:0};let n=[{top:0,left:0},{top:0,left:MAX_X},{top:MAX_Y,left:MAX_X},{top:MAX_Y,left:0}],o=function(e,t){return Math.abs(e.top-t.top)+Math.abs(e.left-t.left)};if(e.side===t.side)return{path:[t],distance:o(e,t)};let i=0,a=[],l={...e},r=e.side;for(;;){let s=(r+1)%4,d=n[s];if(i+=o(l,d),a.push(d),l=d,r=s,r===t.side){i+=o(l,t),a.push(t);break}}let s=0,d=[],c={...e},u=e.side;for(;;){let p=n[u];if(s+=o(c,p),d.push(p),c=p,u=(u+3)%4,u===t.side){s+=o(c,t),d.push(t);break}}return i<=s?{path:a,distance:i}:{path:d,distance:s}}function initializeDisplays(){let e=Math.floor(workSeconds/60),t=workSeconds%60;timerDisplay.textContent=`${e}:${String(t).padStart(2,"0")}`,timerDisplay.style.color="#333",roundDisplay.textContent=`Раунд 1 / ${totalRounds}`}function updateTimerDisplay(){let e=Math.floor(secondsLeft/60),t=secondsLeft%60;timerDisplay.textContent=`${e}:${String(t).padStart(2,"0")}`,roundDisplay.textContent=isWorkPhase?`Раунд ${currentRound} / ${totalRounds}`:"Отдых",timerDisplay.style.color=isWorkPhase?"red":"green"}initializeDisplays(),stopBtn.disabled=!0;
+        // --- DOM Elements ---
+        const gameContainer = document.getElementById("game-container");
+        const startBtn = document.getElementById("start-btn");
+        const stopBtn = document.getElementById("stop-btn");
+        const redCircle = document.getElementById("red-circle");
+        const whiteCircle = document.getElementById("white-circle");
+        const timerDisplay = document.getElementById("timer-display");
+        const roundDisplay = document.getElementById("round-display");
+        const modeButtons = document.querySelectorAll(".mode-btn");
+        const settingsBtn = document.getElementById("settings-btn");
+        const settingsPanel = document.getElementById("settings-panel");
+        const closeSettingsBtn = document.getElementById("close-settings-btn");
+        const mainControls = document.getElementById("main-controls");
+
+        // --- Dynamic Sizing Variables ---
+        let SIZE_X, SIZE_Y, CIRCLE_DIAMETER, MAX_X, MAX_Y, MID_X, MID_Y, MAX_PATH_DISTANCE, SPEED;
+
+        // --- Configurable Settings ---
+        let rectangleSpeedDuration = 4000;
+        let crossInterval = 3000;
+        let riseInterval = 6000;
+        let throwsInterval = 3500;
+        let workSeconds = 120;
+        let restSeconds = 60;
+        let preparationSeconds = 5;
+        let totalRounds = 10;
+
+        // --- State Variables ---
+        let currentMode = "прямоугольник";
+        let gameLoopTimeout, timerInterval, preparationInterval;
+        let animationTimeouts = [];
+        let currentWhitePos = null;
+        let currentRound = 1;
+        let isWorkPhase = true;
+        let secondsLeft = workSeconds;
+
+        // --- Initial Setup ---
+        window.addEventListener("resize", stopGame);
+        modeButtons.forEach(btn => {
+            btn.addEventListener("click", () => setMode(btn.textContent.toLowerCase(), btn));
+        });
+        startBtn.addEventListener("click", startGame);
+        stopBtn.addEventListener("click", stopGame);
+        settingsBtn.addEventListener("click", openSettings);
+        closeSettingsBtn.addEventListener("click", closeSettings);
+
+        /**
+         * Dynamically creates the settings panel with sliders.
+         */
+        function createSettingsPanel() {
+            const settings = [
+                { id: "work", label: "Раунд", value: workSeconds, min: 10, max: 300, step: 10, unit: "сек" },
+                { id: "rest", label: "Отдых", value: restSeconds, min: 10, max: 180, step: 5, unit: "сек" },
+                { id: "prep", label: "Подготовка", value: preparationSeconds, min: 3, max: 15, step: 1, unit: "сек" },
+                { id: "rounds", label: "Кол-во раундов", value: totalRounds, min: 1, max: 20, step: 1, unit: "" },
+                { id: "rect-speed", label: "Прямоуг. (скорость)", value: rectangleSpeedDuration / 1000, min: 2, max: 8, step: 0.5, unit: "сек" },
+                { id: "cross-int", label: "Крест (интервал)", value: crossInterval / 1000, min: 2, max: 8, step: 0.5, unit: "сек" },
+                { id: "rise-int", label: "Подъем (интервал)", value: riseInterval / 1000, min: 3, max: 10, step: 0.5, unit: "сек" },
+                { id: "throws-int", label: "Броски (интервал)", value: throwsInterval / 1000, min: 2, max: 8, step: 0.5, unit: "сек" }
+            ];
+            let html = "";
+            settings.forEach(s => {
+                html += `<div class="settings-row"><label for="${s.id}-slider">${s.label}</label><input type="range" id="${s.id}-slider" min="${s.min}" max="${s.max}" step="${s.step}" value="${s.value}"><span id="${s.id}-value">${s.value} ${s.unit}</span></div>`;
+            });
+            closeSettingsBtn.insertAdjacentHTML("beforebegin", html);
+
+            settings.forEach(s => {
+                const slider = document.getElementById(`${s.id}-slider`);
+                const valueSpan = document.getElementById(`${s.id}-value`);
+                slider.addEventListener("input", () => { valueSpan.textContent = `${slider.value} ${s.unit}`; });
+            });
+        }
+        createSettingsPanel();
+        
+        // --- UI Flow ---
+        function openSettings() {
+            stopGame();
+            mainControls.classList.add("hidden");
+            settingsPanel.classList.remove("hidden");
+            settingsBtn.classList.add("hidden");
+        }
+
+        function closeSettings() {
+            workSeconds = parseInt(document.getElementById("work-slider").value);
+            restSeconds = parseInt(document.getElementById("rest-slider").value);
+            preparationSeconds = parseInt(document.getElementById("prep-slider").value);
+            totalRounds = parseInt(document.getElementById("rounds-slider").value);
+            rectangleSpeedDuration = parseFloat(document.getElementById("rect-speed-slider").value) * 1000;
+            crossInterval = parseFloat(document.getElementById("cross-int-slider").value) * 1000;
+            riseInterval = parseFloat(document.getElementById("rise-int-slider").value) * 1000;
+            throwsInterval = parseFloat(document.getElementById("throws-int-slider").value) * 1000;
+
+            mainControls.classList.remove("hidden");
+            settingsPanel.classList.add("hidden");
+            settingsBtn.classList.remove("hidden");
+            initializeDisplays();
+        }
+
+        // --- Core Game Logic ---
+        function setMode(mode, clickedButton) {
+            if (currentMode === mode) return;
+            currentMode = mode;
+            modeButtons.forEach(btn => btn.classList.remove("active"));
+            clickedButton.classList.add("active");
+            if (!startBtn.disabled) {
+                stopGame();
+            }
+        }
+
+        function startGame() {
+            stopGame();
+            redCircle.style.display = "block";
+            updateDimensions();
+            redCircle.style.display = "none";
+            startBtn.disabled = true;
+            stopBtn.disabled = false;
+            startPreparationCountdown();
+        }
+
+        function stopGame() {
+            clearInterval(preparationInterval);
+            clearTimeout(gameLoopTimeout);
+            animationTimeouts.forEach(clearTimeout);
+            animationTimeouts = [];
+            clearInterval(timerInterval);
+
+            redCircle.style.display = "none";
+            whiteCircle.style.display = "none";
+            whiteCircle.style.transition = "none";
+            currentWhitePos = null;
+            currentRound = 1;
+            isWorkPhase = true;
+            secondsLeft = workSeconds;
+
+            initializeDisplays();
+            startBtn.disabled = false;
+            stopBtn.disabled = true;
+            settingsBtn.classList.remove("hidden");
+        }
+
+        function startPreparationCountdown() {
+            let countdown = preparationSeconds;
+            timerDisplay.style.color = "#337ab7";
+            roundDisplay.textContent = `Раунд ${currentRound} / ${totalRounds}`;
+            timerDisplay.textContent = `Старт через: ${countdown}`;
+
+            preparationInterval = setInterval(() => {
+                countdown--;
+                timerDisplay.textContent = `Старт через: ${countdown}`;
+                if (countdown <= 0) {
+                    clearInterval(preparationInterval);
+                    runActiveMode();
+                    startTimer();
+                }
+            }, 1000);
+        }
+
+        function runActiveMode() {
+            whiteCircle.style.display = "none";
+            switch (currentMode) {
+                case "прямоугольник": rectangleStep(); break;
+                case "крест": crossStep(); break;
+                case "подъем": riseStep(); break;
+                case "броски": throwsStep(); break;
+            }
+        }
+
+        function startTimer() {
+            secondsLeft = workSeconds;
+            updateTimerDisplay();
+            timerInterval = setInterval(() => {
+                secondsLeft--;
+                updateTimerDisplay();
+                if (secondsLeft < 0) {
+                    if (isWorkPhase) {
+                        isWorkPhase = false;
+                        secondsLeft = restSeconds;
+                        redCircle.style.display = "none";
+                        clearTimeout(gameLoopTimeout);
+                        if (currentRound >= totalRounds) {
+                            stopGame();
+                            roundDisplay.textContent = "Тренировка окончена!";
+                            return;
+                        }
+                    } else {
+                        isWorkPhase = true;
+                        currentRound++;
+                        clearInterval(timerInterval);
+                        startPreparationCountdown();
+                    }
+                }
+            }, 1000);
+        }
+        
+        // --- Game Modes ---
+        function rectangleStep() {
+            if (!isWorkPhase) return;
+            if (currentWhitePos === null) {
+                currentWhitePos = getRandomSpawnPoint();
+                placeCircle(whiteCircle, currentWhitePos);
+            }
+            let redPos;
+            do {
+                redPos = getRandomSpawnPoint();
+            } while (redPos.name === currentWhitePos.name);
+            placeCircle(redCircle, redPos);
+            const animationDuration = animateWhiteCircleAlongPath(currentWhitePos, redPos);
+            currentWhitePos = redPos;
+            gameLoopTimeout = setTimeout(() => { if (isWorkPhase) { rectangleStep(); } }, animationDuration);
+        }
+
+        function throwsStep() {
+            if (!isWorkPhase) return;
+            placeCircle(redCircle, getRandomSpawnPoint());
+            const hideTimeout = setTimeout(() => { redCircle.style.display = "none"; }, 1500);
+            animationTimeouts.push(hideTimeout);
+            gameLoopTimeout = setTimeout(throwsStep, throwsInterval);
+        }
+
+        function crossStep() {
+            if (!isWorkPhase) return;
+            placeCircle(redCircle, getRandomSpawnPoint());
+            const hideTimeout = setTimeout(() => { redCircle.style.display = "none"; }, 1500);
+            animationTimeouts.push(hideTimeout);
+            gameLoopTimeout = setTimeout(crossStep, crossInterval);
+        }
+
+        function riseStep() {
+            if (!isWorkPhase) return;
+            placeCircle(redCircle, getRandomSpawnPoint());
+            const visibleDuration = riseInterval - 1000;
+            const hideTimeout = setTimeout(() => { redCircle.style.display = "none"; }, visibleDuration > 500 ? visibleDuration : 500);
+            animationTimeouts.push(hideTimeout);
+            gameLoopTimeout = setTimeout(riseStep, riseInterval);
+        }
+
+        // --- Utility Functions ---
+        function updateDimensions() {
+            SIZE_X = gameContainer.offsetWidth;
+            SIZE_Y = gameContainer.offsetHeight;
+            CIRCLE_DIAMETER = redCircle.offsetWidth;
+            MAX_X = SIZE_X - CIRCLE_DIAMETER;
+            MAX_Y = SIZE_Y - CIRCLE_DIAMETER;
+            MID_X = SIZE_X / 2 - CIRCLE_DIAMETER / 2;
+            MID_Y = SIZE_Y / 2 - CIRCLE_DIAMETER / 2;
+            MAX_PATH_DISTANCE = MAX_X + MAX_Y;
+            SPEED = MAX_PATH_DISTANCE / rectangleSpeedDuration;
+        }
+
+        function getPointsForCurrentMode() {
+            const allPoints = [
+                { name: "topLeft", top: 0, left: 0, side: 3 },
+                { name: "topRight", top: 0, left: MAX_X, side: 0 },
+                { name: "bottomRight", top: MAX_Y, left: MAX_X, side: 1 },
+                { name: "bottomLeft", top: MAX_Y, left: 0, side: 2 },
+                { name: "midTop", top: 0, left: MID_X, side: 0 },
+                { name: "midRight", top: MID_Y, left: MAX_X, side: 1 },
+                { name: "midBottom", top: MAX_Y, left: MID_X, side: 2 },
+                { name: "midLeft", top: MID_Y, left: 0, side: 3 }
+            ];
+            switch (currentMode) {
+                case "крест": return allPoints.filter(p => ["midTop", "midBottom", "midLeft", "midRight"].includes(p.name));
+                case "подъем": return allPoints.filter(p => ["topLeft", "midTop", "topRight"].includes(p.name));
+                default: return allPoints;
+            }
+        }
+
+        function getRandomSpawnPoint() {
+            const points = getPointsForCurrentMode();
+            return points[Math.floor(Math.random() * points.length)];
+        }
+
+        function placeCircle(circle, pos) {
+            circle.style.transition = "none";
+            circle.style.top = `${pos.top}px`;
+            circle.style.left = `${pos.left}px`;
+            circle.style.display = "block";
+        }
+
+        function animateWhiteCircleAlongPath(startPos, endPos) {
+            const pathInfo = calculateShortestPath(startPos, endPos);
+            const totalDistance = pathInfo.distance;
+            const totalDuration = totalDistance / SPEED;
+            if (totalDistance === 0) return 0;
+            let cumulativeDelay = 0;
+            for (let i = 0; i < pathInfo.path.length; i++) {
+                const segmentEnd = pathInfo.path[i];
+                const segmentStart = (i === 0) ? startPos : pathInfo.path[i - 1];
+                const segmentDistance = Math.abs(segmentStart.top - segmentEnd.top) + Math.abs(segmentStart.left - segmentEnd.left);
+                const segmentDuration = (segmentDistance / totalDistance) * totalDuration;
+                const timeoutId = setTimeout(((end, duration) => {
+                    return () => {
+                        whiteCircle.style.transition = `top ${duration}ms linear, left ${duration}ms linear`;
+                        whiteCircle.style.top = `${end.top}px`;
+                        whiteCircle.style.left = `${end.left}px`;
+                    };
+                })(segmentEnd, segmentDuration), cumulativeDelay);
+                animationTimeouts.push(timeoutId);
+                cumulativeDelay += segmentDuration;
+            }
+            return totalDuration;
+        }
+
+        function calculateShortestPath(start, end) {
+            if (start.top === end.top && start.left === end.left) { return { path: [], distance: 0 }; }
+            const corners = [{ top: 0, left: 0 }, { top: 0, left: MAX_X }, { top: MAX_Y, left: MAX_X }, { top: MAX_Y, left: 0 }];
+            const perimeterDistance = (p1, p2) => Math.abs(p1.top - p2.top) + Math.abs(p1.left - p2.left);
+            if (start.side === end.side) { return { path: [end], distance: perimeterDistance(start, end) }; }
+            let dist_cw = 0, path_cw = [], current_pos_cw = { ...start }, current_side_cw = start.side;
+            while (true) {
+                const corner_idx = (current_side_cw + 1) % 4, corner = corners[corner_idx];
+                dist_cw += perimeterDistance(current_pos_cw, corner); path_cw.push(corner);
+                current_pos_cw = corner; current_side_cw = corner_idx;
+                if (current_side_cw === end.side) { dist_cw += perimeterDistance(current_pos_cw, end); path_cw.push(end); break; }
+            }
+            let dist_ccw = 0, path_ccw = [], current_pos_ccw = { ...start }, current_side_ccw = start.side;
+            while (true) {
+                const corner = corners[current_side_ccw];
+                dist_ccw += perimeterDistance(current_pos_ccw, corner); path_ccw.push(corner);
+                current_pos_ccw = corner; current_side_ccw = (current_side_ccw + 3) % 4;
+                if (current_side_ccw === end.side) { dist_ccw += perimeterDistance(current_pos_ccw, end); path_ccw.push(end); break; }
+            }
+            return (dist_cw <= dist_ccw) ? { path: path_cw, distance: dist_cw } : { path: path_ccw, distance: dist_ccw };
+        }
+        
+        function initializeDisplays() {
+            const minutes = Math.floor(workSeconds / 60);
+            const seconds = workSeconds % 60;
+            timerDisplay.textContent = `${minutes}:${String(seconds).padStart(2, "0")}`;
+            timerDisplay.style.color = "#333";
+            roundDisplay.textContent = `Раунд 1 / ${totalRounds}`;
+        }
+
+        function updateTimerDisplay() {
+            const minutes = Math.floor(secondsLeft / 60);
+            const seconds = secondsLeft % 60;
+            timerDisplay.textContent = `${minutes}:${String(seconds).padStart(2, "0")}`;
+            roundDisplay.textContent = isWorkPhase ? `Раунд ${currentRound} / ${totalRounds}` : "Отдых";
+            timerDisplay.style.color = isWorkPhase ? "red" : "green";
+        }
+        
+        initializeDisplays();
+        stopBtn.disabled = true;
     </script>
 </body>
 </html>
