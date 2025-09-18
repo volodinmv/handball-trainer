@@ -5,80 +5,272 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>Тренажер для гандбольного вратаря</title>
 
-    <!-- PWA (Progressive Web App) Configuration -->
+    <!-- PWA Configuration -->
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="Goalkeeper Training">
     <link rel="apple-touch-icon" href="icon-512x512.png">
     <link rel="manifest" href="manifest.json">
 
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;700&display=swap" rel="stylesheet">
+
     <style>
         body, html {
-            display: flex; justify-content: center; align-items: center;
-            height: 100%; width: 100%; margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100%;
+            width: 100%;
+            margin: 0;
             background-color: transparent;
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
-            overflow: hidden; 
+            font-family: 'Roboto', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            overflow: hidden;
             position: fixed;
         }
         #game-container {
-            width: 100%; height: 100%; position: relative;
-            background-color: #e9e9e9; border-radius: 2.5vmin;
+            width: 100%;
+            height: 100%;
+            position: relative;
+            background-color: #2c3e50;
+            background-image: linear-gradient(135deg, rgba(255, 255, 255, 0.03) 25%, transparent 25%, transparent 50%, rgba(255, 255, 255, 0.03) 50%, rgba(255, 255, 255, 0.03) 75%, transparent 75%, transparent);
+            background-size: 70px 70px;
+            border-radius: 2.5vmin;
         }
         #play-area {
-            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            border-radius: inherit; overflow: hidden;
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            border-radius: inherit;
+            overflow: hidden;
             z-index: 1;
         }
         #settings-btn {
-            position: absolute; top: 9.5vmin; right: 9.5vmin; z-index: 20;
-            background: none; border: none; cursor: pointer; padding: 0.5vmin;
+            position: absolute;
+            top: 9.5vmin;
+            right: 9.5vmin;
+            z-index: 20;
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 0.5vmin;
+            transition: transform 0.2s ease;
         }
-        #settings-btn svg { width: 3.5vmin; height: 3.5vmin; fill: #555; }
-        .border { position: absolute; background-color: rgba(128, 128, 128, 0.5); }
+        #settings-btn svg {
+            width: 3.5vmin;
+            height: 3.5vmin;
+            fill: #b0bec5;
+        }
+        #settings-btn:active {
+            transform: scale(0.9);
+        }
+        .border {
+            position: absolute;
+            background-color: #1f2b38;
+        }
         #border-top { top: 0; left: 0; width: 100%; height: 8vmin; }
         #border-right { top: 0; right: 0; width: 8vmin; height: 100%; }
         #border-bottom { bottom: 0; left: 0; width: 100%; height: 8vmin; }
         #border-left { top: 0; left: 0; width: 8vmin; height: 100%; }
-        #red-circle, #white-circle {
-            width: 8vmin; height: 8vmin; border-radius: 50%;
-            position: absolute; display: none; box-sizing: border-box;
+        #red-circle,
+        #white-circle {
+            width: 8vmin;
+            height: 8vmin;
+            border-radius: 50%;
+            position: absolute;
+            display: none;
+            box-sizing: border-box;
         }
-        #red-circle { background-color: red; z-index: 5; }
-        #white-circle { background-color: white; border: 0.3vmin solid #ccc; z-index: 6; }
+        #red-circle {
+            background-color: #ff5252;
+            z-index: 5;
+            box-shadow: 0 0 15px rgba(255, 82, 82, 0.7);
+        }
+        #white-circle {
+            background-color: #f0f0f0;
+            border: 0.3vmin solid #455a64;
+            z-index: 6;
+            box-shadow: 0 0 10px rgba(255, 255, 255, 0.3);
+        }
         #controls-wrapper {
-            position: absolute; top: 50%; left: 50%;
-            transform: translate(-50%, -50%); z-index: 10;
-            text-align: center; width: 80%;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 10;
+            text-align: center;
+            width: 90%;
+            max-width: 600px;
         }
-        #settings-panel {
-            background: rgba(255, 255, 255, 0.95); padding: 2vmin; border-radius: 1.5vmin;
-            box-shadow: 0 0 10px rgba(0,0,0,0.1); display: flex; flex-direction: column; gap: 1.5vmin;
+        #main-controls {
+            background: rgba(0, 0, 0, 0.2);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            padding: 2vmin;
+            border-radius: 2vmin;
+            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.1);
         }
-        .settings-row { display: flex; justify-content: space-between; align-items: center; }
-        .settings-row label { font-size: 1.8vmin; white-space: nowrap; margin-right: 1.5vmin;}
-        .settings-row input[type="range"] { width: 100%; }
-        .settings-row span { font-size: 1.8vmin; font-weight: bold; min-width: 8vmin; text-align: right; }
-        #close-settings-btn {
-             padding: 1vmin; font-size: 2vmin; cursor: pointer; border-radius: 1vmin;
-             border: 0.2vmin solid #aaa; background-color: #fff; margin-top: 1vmin;
+        .hidden {
+            display: none !important;
         }
-        .hidden { display: none !important; }
-        #mode-selector { 
-            margin-bottom: 2vmin; display: flex; flex-wrap: wrap; justify-content: center;
+        #mode-selector {
+            margin-bottom: 2vmin;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        .mode-btn,
+        #start-btn,
+        #stop-btn {
+            cursor: pointer;
+            border-radius: 1vmin;
+            transition: transform 0.1s ease, background-color 0.2s ease, opacity 0.2s ease;
+        }
+        .mode-btn:active,
+        #start-btn:active,
+        #stop-btn:active,
+        #close-settings-btn:active {
+            transform: scale(0.98);
         }
         .mode-btn {
-            padding: 1vmin 1.5vmin; font-size: 1.8vmin; cursor: pointer;
-            margin: 0.5vmin; border-radius: 1vmin; border: 0.2vmin solid #ccc;
-            background-color: #f0f0f0;
+            padding: 1vmin 1.5vmin;
+            font-size: 1.8vmin;
+            font-weight: 400;
+            margin: 0.5vmin;
+            border: none;
+            background-color: rgba(255, 255, 255, 0.1);
+            color: #eceff1;
         }
-        .mode-btn.active { background-color: #a5d6a7; border-color: #388e3c; }
-        #round-display { font-size: 3.5vmin; color: #555; margin-bottom: 2vmin; }
-        #timer-display { font-size: 8vmin; font-weight: bold; margin-bottom: 1.5vmin; color: #333; }
-        #start-btn, #stop-btn {
-            padding: 1.5vmin 3vmin; font-size: 2.5vmin; cursor: pointer;
-            margin: 1vmin; border-radius: 1.5vmin; border: 0.2vmin solid #aaa;
-            background-color: #fff;
+        .mode-btn.active {
+            background-color: #4dd0e1;
+            color: #263238;
+            font-weight: 700;
+        }
+        .mode-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        #round-display {
+            font-size: 3.5vmin;
+            color: #b0bec5;
+            margin-bottom: 2vmin;
+            font-weight: 300;
+        }
+        #timer-display {
+            font-size: 8vmin;
+            font-weight: 700;
+            margin-bottom: 1.5vmin;
+            color: #eceff1;
+        }
+        #start-btn,
+        #stop-btn {
+            padding: 1.5vmin 3vmin;
+            font-size: 2.5vmin;
+            margin: 1vmin;
+            border: none;
+            color: #eceff1;
+        }
+        #start-btn { background-color: #66bb6a; }
+        #stop-btn { background-color: #ef5350; }
+        #settings-panel {
+            background: rgba(255, 255, 255, 0.98);
+            padding: 3vmin;
+            border-radius: 1.5vmin;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.15);
+            display: flex;
+            flex-direction: column;
+            gap: 2vmin;
+            color: #333;
+        }
+        .settings-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .settings-row label,
+        .settings-row span {
+            font-size: 2.0vmin;
+        }
+        .settings-row label {
+            white-space: nowrap;
+            margin-right: 1.5vmin;
+            color: #37474f;
+        }
+        .settings-row span {
+            font-weight: bold;
+            min-width: 9vmin;
+            text-align: right;
+            color: #000;
+        }
+        #close-settings-btn {
+            padding: 1.5vmin;
+            font-size: 2.0vmin;
+            font-weight: bold;
+            cursor: pointer;
+            border-radius: 1vmin;
+            border: none;
+            background-color: #4dd0e1;
+            color: #263238;
+            margin-top: 1vmin;
+            transition: transform 0.1s ease;
+        }
+        input[type="range"] {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 100%;
+            height: 1.5vmin;
+            background: #eceff1;
+            outline: none;
+            border-radius: 1vmin;
+        }
+        input[type="range"]::-webkit-slider-runnable-track {
+            height: 1.5vmin;
+            border-radius: 1vmin;
+            background: linear-gradient(90deg, #4dd0e1 0%, #80deea 100%);
+        }
+        input[type="range"]::-moz-range-track {
+            height: 1.5vmin;
+            border-radius: 1vmin;
+            background: linear-gradient(90deg, #4dd0e1 0%, #80deea 100%);
+        }
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            margin-top: -0.75vmin;
+            width: 3vmin;
+            height: 3vmin;
+            background: #fff;
+            border-radius: 50%;
+            cursor: pointer;
+            border: 1px solid #b0bec5;
+            box-shadow: 0 0 5px rgba(0, 0, 0, 0.2);
+        }
+        input[type="range"]::-moz-range-thumb {
+            width: 3vmin;
+            height: 3vmin;
+            background: #fff;
+            border-radius: 50%;
+            cursor: pointer;
+            border: 1px solid #b0bec5;
+            box-shadow: 0 0 5px rgba(0, 0, 0, 0.2);
+        }
+        .animate-flash {
+            animation: flash-in 0.3s ease-out;
+        }
+        @keyframes flash-in {
+            from { transform: scale(0.5); opacity: 0; }
+            to { transform: scale(1); opacity: 1; }
+        }
+        .pulsing {
+            animation: pulse 1s infinite;
+        }
+        @keyframes pulse {
+            50% { transform: scale(1.05); }
         }
     </style>
 </head>
@@ -88,20 +280,29 @@
             <svg viewBox="0 0 24 24"><path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"/></svg>
         </button>
         <div id="controls-wrapper">
-            <div id="settings-panel" class="hidden"><button id="close-settings-btn">Сохранить и закрыть</button></div>
+            <div id="settings-panel" class="hidden">
+                <button id="close-settings-btn">Сохранить и закрыть</button>
+            </div>
             <div id="main-controls">
                 <div id="mode-selector">
-                    <button class="mode-btn active">Прямоугольник</button> <button class="mode-btn">Крест</button>
-                    <button class="mode-btn">Подъем</button> <button class="mode-btn">Броски</button>
+                    <button class="mode-btn active">Прямоугольник</button>
+                    <button class="mode-btn">Крест</button>
+                    <button class="mode-btn">Подъем</button>
+                    <button class="mode-btn">Броски</button>
                 </div>
-                <div id="round-display"></div><div id="timer-display"></div>
-                <button id="start-btn">Старт</button><button id="stop-btn">Стоп</button>
+                <div id="round-display"></div>
+                <div id="timer-display"></div>
+                <button id="start-btn">Старт</button>
+                <button id="stop-btn">Стоп</button>
             </div>
         </div>
         <div id="play-area">
-            <div id="border-top" class="border"></div><div id="border-right" class="border"></div>
-            <div id="border-bottom" class="border"></div><div id="border-left" class="border"></div>
-            <div id="red-circle"></div><div id="white-circle"></div>
+            <div id="border-top" class="border"></div>
+            <div id="border-right" class="border"></div>
+            <div id="border-bottom" class="border"></div>
+            <div id="border-left" class="border"></div>
+            <div id="red-circle"></div>
+            <div id="white-circle"></div>
         </div>
     </div>
 
@@ -222,6 +423,8 @@
             redCircle.style.display = "none";
             startBtn.disabled = true;
             stopBtn.disabled = false;
+            modeButtons.forEach(btn => btn.disabled = true);
+            settingsBtn.disabled = true; // Also disable settings button
             startPreparationCountdown();
         }
 
@@ -235,6 +438,8 @@
             redCircle.style.display = "none";
             whiteCircle.style.display = "none";
             whiteCircle.style.transition = "none";
+            timerDisplay.classList.remove("pulsing");
+            
             currentWhitePos = null;
             currentRound = 1;
             isWorkPhase = true;
@@ -243,20 +448,24 @@
             initializeDisplays();
             startBtn.disabled = false;
             stopBtn.disabled = true;
+            modeButtons.forEach(btn => btn.disabled = false);
+            settingsBtn.disabled = false;
             settingsBtn.classList.remove("hidden");
         }
 
         function startPreparationCountdown() {
             let countdown = preparationSeconds;
-            timerDisplay.style.color = "#337ab7";
+            timerDisplay.style.color = "#4dd0e1";
             roundDisplay.textContent = `Раунд ${currentRound} / ${totalRounds}`;
             timerDisplay.textContent = `Старт через: ${countdown}`;
+            timerDisplay.classList.add("pulsing");
 
             preparationInterval = setInterval(() => {
                 countdown--;
                 timerDisplay.textContent = `Старт через: ${countdown}`;
                 if (countdown <= 0) {
                     clearInterval(preparationInterval);
+                    timerDisplay.classList.remove("pulsing");
                     runActiveMode();
                     startTimer();
                 }
@@ -383,6 +592,12 @@
             circle.style.top = `${pos.top}px`;
             circle.style.left = `${pos.left}px`;
             circle.style.display = "block";
+            if (circle.id === "red-circle") {
+                circle.classList.add("animate-flash");
+                circle.addEventListener("animationend", () => {
+                    circle.classList.remove("animate-flash");
+                }, { once: true });
+            }
         }
 
         function animateWhiteCircleAlongPath(startPos, endPos) {
@@ -435,7 +650,7 @@
             const minutes = Math.floor(workSeconds / 60);
             const seconds = workSeconds % 60;
             timerDisplay.textContent = `${minutes}:${String(seconds).padStart(2, "0")}`;
-            timerDisplay.style.color = "#333";
+            timerDisplay.style.color = "#eceff1";
             roundDisplay.textContent = `Раунд 1 / ${totalRounds}`;
         }
 
@@ -444,7 +659,7 @@
             const seconds = secondsLeft % 60;
             timerDisplay.textContent = `${minutes}:${String(seconds).padStart(2, "0")}`;
             roundDisplay.textContent = isWorkPhase ? `Раунд ${currentRound} / ${totalRounds}` : "Отдых";
-            timerDisplay.style.color = isWorkPhase ? "red" : "green";
+            timerDisplay.style.color = isWorkPhase ? "#ff5252" : "#66bb6a";
         }
         
         initializeDisplays();
