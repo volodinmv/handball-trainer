@@ -12,13 +12,14 @@
     <link rel="apple-touch-icon" href="icon-512x512.png">
     <link rel="manifest" href="manifest.json">
 
-    <!-- Google Fonts -->
+    <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;700&display=swap" rel="stylesheet">
 
     <style>
-        body, html {
+        body,
+        html {
             display: flex;
             justify-content: center;
             align-items: center;
@@ -30,6 +31,7 @@
             overflow: hidden;
             position: fixed;
         }
+
         #game-container {
             width: 100%;
             height: 100%;
@@ -37,18 +39,51 @@
             background-color: #2c3e50;
             background-image: linear-gradient(135deg, rgba(255, 255, 255, 0.03) 25%, transparent 25%, transparent 50%, rgba(255, 255, 255, 0.03) 50%, rgba(255, 255, 255, 0.03) 75%, transparent 75%, transparent);
             background-size: 70px 70px;
-            border-radius: 2.5vmin;
         }
+
         #play-area {
             position: absolute;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
-            border-radius: inherit;
             overflow: hidden;
             z-index: 1;
         }
+
+        .border {
+            position: absolute;
+            background-color: #1f2b38;
+        }
+
+        #border-top { top: 0; left: 0; width: 100%; height: 8vmin; }
+        #border-right { top: 0; right: 0; width: 8vmin; height: 100%; }
+        #border-bottom { bottom: 0; left: 0; width: 100%; height: 8vmin; }
+        #border-left { top: 0; left: 0; width: 8vmin; height: 100%; }
+
+        #red-circle,
+        #white-circle {
+            width: 8vmin;
+            height: 8vmin;
+            border-radius: 50%;
+            position: absolute;
+            display: none;
+            box-sizing: border-box;
+        }
+
+        #red-circle {
+            background-color: #ff5252;
+            z-index: 5;
+            box-shadow: 0 0 15px rgba(255, 82, 82, 0.7);
+        }
+
+        #white-circle {
+            background-color: #f0f0f0;
+            border: 0.3vmin solid #455a64;
+            z-index: 6;
+            box-shadow: 0 0 10px rgba(255, 255, 255, 0.3);
+        }
+
         #settings-btn {
             position: absolute;
             top: 9.5vmin;
@@ -60,42 +95,17 @@
             padding: 0.5vmin;
             transition: transform 0.2s ease;
         }
+
         #settings-btn svg {
             width: 3.5vmin;
             height: 3.5vmin;
             fill: #b0bec5;
         }
+
         #settings-btn:active {
             transform: scale(0.9);
         }
-        .border {
-            position: absolute;
-            background-color: #1f2b38;
-        }
-        #border-top { top: 0; left: 0; width: 100%; height: 8vmin; }
-        #border-right { top: 0; right: 0; width: 8vmin; height: 100%; }
-        #border-bottom { bottom: 0; left: 0; width: 100%; height: 8vmin; }
-        #border-left { top: 0; left: 0; width: 8vmin; height: 100%; }
-        #red-circle,
-        #white-circle {
-            width: 8vmin;
-            height: 8vmin;
-            border-radius: 50%;
-            position: absolute;
-            display: none;
-            box-sizing: border-box;
-        }
-        #red-circle {
-            background-color: #ff5252;
-            z-index: 5;
-            box-shadow: 0 0 15px rgba(255, 82, 82, 0.7);
-        }
-        #white-circle {
-            background-color: #f0f0f0;
-            border: 0.3vmin solid #455a64;
-            z-index: 6;
-            box-shadow: 0 0 10px rgba(255, 255, 255, 0.3);
-        }
+
         #controls-wrapper {
             position: absolute;
             top: 50%;
@@ -106,6 +116,7 @@
             width: 90%;
             max-width: 600px;
         }
+
         #main-controls {
             background: rgba(0, 0, 0, 0.2);
             backdrop-filter: blur(10px);
@@ -115,15 +126,18 @@
             box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
             border: 1px solid rgba(255, 255, 255, 0.1);
         }
+
         .hidden {
             display: none !important;
         }
+
         #mode-selector {
             margin-bottom: 2vmin;
             display: flex;
             flex-wrap: wrap;
             justify-content: center;
         }
+
         .mode-btn,
         #start-btn,
         #stop-btn {
@@ -131,12 +145,14 @@
             border-radius: 1vmin;
             transition: transform 0.1s ease, background-color 0.2s ease, opacity 0.2s ease;
         }
+
         .mode-btn:active,
         #start-btn:active,
         #stop-btn:active,
         #close-settings-btn:active {
             transform: scale(0.98);
         }
+
         .mode-btn {
             padding: 1vmin 1.5vmin;
             font-size: 1.8vmin;
@@ -146,27 +162,32 @@
             background-color: rgba(255, 255, 255, 0.1);
             color: #eceff1;
         }
+
         .mode-btn.active {
             background-color: #4dd0e1;
             color: #263238;
             font-weight: 700;
         }
+
         .mode-btn:disabled {
             opacity: 0.5;
             cursor: not-allowed;
         }
+
         #round-display {
             font-size: 3.5vmin;
             color: #b0bec5;
             margin-bottom: 2vmin;
             font-weight: 300;
         }
+
         #timer-display {
             font-size: 8vmin;
             font-weight: 700;
             margin-bottom: 1.5vmin;
             color: #eceff1;
         }
+
         #start-btn,
         #stop-btn {
             padding: 1.5vmin 3vmin;
@@ -175,8 +196,10 @@
             border: none;
             color: #eceff1;
         }
+
         #start-btn { background-color: #66bb6a; }
         #stop-btn { background-color: #ef5350; }
+
         #settings-panel {
             background: rgba(255, 255, 255, 0.98);
             padding: 3vmin;
@@ -187,26 +210,31 @@
             gap: 2vmin;
             color: #333;
         }
+
         .settings-row {
             display: flex;
             justify-content: space-between;
             align-items: center;
         }
+
         .settings-row label,
         .settings-row span {
             font-size: 2.0vmin;
         }
+
         .settings-row label {
             white-space: nowrap;
             margin-right: 1.5vmin;
             color: #37474f;
         }
+
         .settings-row span {
             font-weight: bold;
             min-width: 9vmin;
             text-align: right;
             color: #000;
         }
+
         #close-settings-btn {
             padding: 1.5vmin;
             font-size: 2.0vmin;
@@ -219,6 +247,7 @@
             margin-top: 1vmin;
             transition: transform 0.1s ease;
         }
+
         input[type="range"] {
             -webkit-appearance: none;
             appearance: none;
@@ -228,16 +257,19 @@
             outline: none;
             border-radius: 1vmin;
         }
+
         input[type="range"]::-webkit-slider-runnable-track {
             height: 1.5vmin;
             border-radius: 1vmin;
             background: linear-gradient(90deg, #4dd0e1 0%, #80deea 100%);
         }
+
         input[type="range"]::-moz-range-track {
             height: 1.5vmin;
             border-radius: 1vmin;
             background: linear-gradient(90deg, #4dd0e1 0%, #80deea 100%);
         }
+
         input[type="range"]::-webkit-slider-thumb {
             -webkit-appearance: none;
             appearance: none;
@@ -250,6 +282,7 @@
             border: 1px solid #b0bec5;
             box-shadow: 0 0 5px rgba(0, 0, 0, 0.2);
         }
+
         input[type="range"]::-moz-range-thumb {
             width: 3vmin;
             height: 3vmin;
@@ -259,26 +292,32 @@
             border: 1px solid #b0bec5;
             box-shadow: 0 0 5px rgba(0, 0, 0, 0.2);
         }
+
         .animate-flash {
             animation: flash-in 0.3s ease-out;
         }
+
         @keyframes flash-in {
             from { transform: scale(0.5); opacity: 0; }
             to { transform: scale(1); opacity: 1; }
         }
+
         .pulsing {
             animation: pulse 1s infinite;
         }
+
         @keyframes pulse {
             50% { transform: scale(1.05); }
         }
     </style>
 </head>
+
 <body>
     <div id="game-container">
         <button id="settings-btn" title="Настройки">
             <svg viewBox="0 0 24 24"><path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"/></svg>
         </button>
+
         <div id="controls-wrapper">
             <div id="settings-panel" class="hidden">
                 <button id="close-settings-btn">Сохранить и закрыть</button>
@@ -296,6 +335,7 @@
                 <button id="stop-btn">Стоп</button>
             </div>
         </div>
+
         <div id="play-area">
             <div id="border-top" class="border"></div>
             <div id="border-right" class="border"></div>
@@ -307,7 +347,7 @@
     </div>
 
     <script>
-        // --- DOM Elements ---
+        // --- DOM Element References ---
         const gameContainer = document.getElementById("game-container");
         const startBtn = document.getElementById("start-btn");
         const stopBtn = document.getElementById("stop-btn");
@@ -321,7 +361,7 @@
         const closeSettingsBtn = document.getElementById("close-settings-btn");
         const mainControls = document.getElementById("main-controls");
 
-        // --- Dynamic Sizing Variables ---
+        // --- Sizing & Speed Variables ---
         let SIZE_X, SIZE_Y, CIRCLE_DIAMETER, MAX_X, MAX_Y, MID_X, MID_Y, MAX_PATH_DISTANCE, SPEED;
 
         // --- Configurable Settings ---
@@ -343,7 +383,7 @@
         let isWorkPhase = true;
         let secondsLeft = workSeconds;
 
-        // --- Initial Setup ---
+        // --- Initial Setup & Event Listeners ---
         window.addEventListener("resize", stopGame);
         modeButtons.forEach(btn => {
             btn.addEventListener("click", () => setMode(btn.textContent.toLowerCase(), btn));
@@ -354,7 +394,7 @@
         closeSettingsBtn.addEventListener("click", closeSettings);
 
         /**
-         * Dynamically creates the settings panel with sliders.
+         * Dynamically creates and populates the settings panel with sliders.
          */
         function createSettingsPanel() {
             const settings = [
@@ -381,7 +421,7 @@
         }
         createSettingsPanel();
         
-        // --- UI Flow ---
+        // --- UI Flow Logic ---
         function openSettings() {
             stopGame();
             mainControls.classList.add("hidden");
@@ -405,7 +445,7 @@
             initializeDisplays();
         }
 
-        // --- Core Game Logic ---
+        // --- Core Game & Timer Logic ---
         function setMode(mode, clickedButton) {
             if (currentMode === mode) return;
             currentMode = mode;
@@ -424,7 +464,7 @@
             startBtn.disabled = true;
             stopBtn.disabled = false;
             modeButtons.forEach(btn => btn.disabled = true);
-            settingsBtn.disabled = true; // Also disable settings button
+            settingsBtn.disabled = true;
             startPreparationCountdown();
         }
 
@@ -509,7 +549,7 @@
             }, 1000);
         }
         
-        // --- Game Modes ---
+        // --- Game Mode Implementations ---
         function rectangleStep() {
             if (!isWorkPhase) return;
             if (currentWhitePos === null) {
@@ -551,7 +591,7 @@
             gameLoopTimeout = setTimeout(riseStep, riseInterval);
         }
 
-        // --- Utility Functions ---
+        // --- Utility & Calculation Functions ---
         function updateDimensions() {
             SIZE_X = gameContainer.offsetWidth;
             SIZE_Y = gameContainer.offsetHeight;
